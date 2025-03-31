@@ -27,6 +27,12 @@ export class TimeManager {
     }
   }
 
+  public nextDay(): void {
+    this.currentDay += 1;
+    this.currentHour = 0;
+    this.lastUpdate = Date.now();
+  }
+
   public getCurrentDay(): number {
     return this.currentDay;
   }

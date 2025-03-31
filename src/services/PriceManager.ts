@@ -119,6 +119,20 @@ export class PriceManager {
     this.transactionHistory = {};
   }
 
+  public updatePricesForNewCity(city: string): void {
+    // Atualizar preços apenas para a cidade específica
+    Object.keys(this.currentPrices[city]).forEach((drug) => {
+      const basePrice = this.basePrices["Nova York"][drug];
+      const cityModifier = this.CITY_MODIFIERS[city];
+      const randomFluctuation = this.getRandomFluctuation();
+
+      // Calcular novo preço com flutuação
+      this.currentPrices[city][drug] = Math.round(
+        basePrice * cityModifier * (1 + randomFluctuation)
+      );
+    });
+  }
+
   private calculateTransactionModifier(city: string, drug: string): number {
     const transactions = this.transactionHistory[city]?.[drug] || 0;
     const baseModifier = 0.1; // 10% de modificador base por transação

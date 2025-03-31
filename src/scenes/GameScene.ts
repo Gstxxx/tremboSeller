@@ -91,14 +91,7 @@ export class GameScene extends Scene {
     this.createPriceDisplay();
     this.createTimeDisplay();
 
-    // Configurar timer para atualização de preços
-    this.time.addEvent({
-      delay: this.PRICE_UPDATE_INTERVAL,
-      callback: this.updatePrices,
-      callbackScope: this,
-      loop: true,
-    });
-
+    // Remover o timer de atualização automática de preços
     // Configurar timer para atualização de dívidas
     this.time.addEvent({
       delay: 5000, // Verificar dívidas a cada 5 segundos
@@ -143,20 +136,20 @@ export class GameScene extends Scene {
     // Container para o dinheiro
     const moneyContainer = this.add.rectangle(50, 70, 300, 40, 0x222222);
     moneyContainer.setOrigin(0, 0);
-    this.add.text(65, 75, "💰", { fontSize: "24px" });
-    this.add.text(100, 75, `$${this.playerMoney}`, this.STYLES.money);
+    this.add.text(65, 80, "💰", { fontSize: "24px" });
+    this.add.text(100, 78, `$${this.playerMoney}`, this.STYLES.money);
 
     // Container para a dívida
     const debtContainer = this.add.rectangle(400, 70, 300, 40, 0x222222);
     debtContainer.setOrigin(0, 0);
-    this.add.text(415, 75, "💸", { fontSize: "24px" });
-    this.add.text(450, 75, `$${this.playerDebt}`, this.STYLES.debt);
+    this.add.text(415, 80, "💸", { fontSize: "24px" });
+    this.add.text(450, 78, `$${this.playerDebt}`, this.STYLES.debt);
 
     // Container para a localização
     const locationContainer = this.add.rectangle(750, 70, 300, 40, 0x222222);
     locationContainer.setOrigin(0, 0);
-    this.add.text(765, 75, "📍", { fontSize: "24px" });
-    this.add.text(800, 75, this.currentLocation, {
+    this.add.text(765, 80, "📍", { fontSize: "24px" });
+    this.add.text(800, 78, this.currentLocation, {
       ...this.STYLES.info,
       color: this.COLORS.textDark,
     });
@@ -232,6 +225,7 @@ export class GameScene extends Scene {
       { text: "💊 COMPRAR", action: () => this.showBuyMenu() },
       { text: "💰 VENDER", action: () => this.showSellMenu() },
       { text: "✈️ VIAJAR", action: () => this.showTravelMenu() },
+      { text: "😴 DORMIR", action: () => this.nextDay() },
     ];
 
     buttons.forEach((button) => {
@@ -374,26 +368,67 @@ export class GameScene extends Scene {
     this.timeText.setText(this.timeManager.getTimeString());
   }
 
-  private updatePrices = () => {
-    this.timeManager.update();
-    this.priceManager.updatePrices(this.timeManager.getCurrentDay());
-    this.updateTimeDisplay();
-
-    // Chance de eventos aleatórios (10% de chance a cada atualização)
-    if (Math.random() < 0.1) {
-      const events: MarketEvent[] = [
-        "POLICE_RAID",
-        "HIGH_DEMAND",
-        "SUPPLY_SHORTAGE",
-        "NEW_SUPPLIER",
-      ];
-      const randomEvent = events[Math.floor(Math.random() * events.length)];
-      this.priceManager.triggerEvent(this.currentLocation, randomEvent);
-      this.showEventMessage(randomEvent);
+  private updateUI() {
+    // Atualizar texto do dinheiro
+    const moneyText = this.children.list.find(
+      (child) =>
+        child instanceof Phaser.GameObjects.Text &&
+        child.text.includes("$") &&
+        child.y === 75
+    ) as Phaser.GameObjects.Text;
+    if (moneyText) {
+      moneyText.setText(`$${this.playerMoney}`);
     }
 
-    this.updateUI();
-  };
+    // Atualizar texto da dívida
+    const debtText = this.children.list.find(
+      (child) =>
+        child instanceof Phaser.GameObjects.Text &&
+        child.text.includes("$") &&
+        child.y === 75 &&
+        child.x > 400
+    ) as Phaser.GameObjects.Text;
+    if (debtText) {
+      debtText.setText(`$${this.playerDebt}`);
+    }
+
+    // Atualizar texto da localização
+    const locationText = this.children.list.find(
+      (child) =>
+        child instanceof Phaser.GameObjects.Text &&
+        child.text === this.currentLocation
+    ) as Phaser.GameObjects.Text;
+    if (locationText) {
+      locationText.setText(this.currentLocation);
+    }
+
+    // Atualizar preços
+    this.children.list
+      .filter(
+        (child): child is Phaser.GameObjects.Text =>
+          child instanceof Phaser.GameObjects.Text &&
+          child.text.startsWith("$") &&
+          child.y > 240
+      )
+      .forEach((priceText) => {
+        const drug = this.children.list.find(
+          (child): child is Phaser.GameObjects.Text =>
+            child instanceof Phaser.GameObjects.Text &&
+            child.x === priceText.x - 170 &&
+            Math.abs(child.y - priceText.y) < 5
+        );
+        if (drug) {
+          const prices = this.priceManager.getPrices(this.currentLocation);
+          priceText.setText(`$${prices[drug.text]}`);
+        }
+      });
+
+    // Atualizar inventário
+    this.createInventory();
+
+    // Atualizar tempo
+    this.updateTimeDisplay();
+  }
 
   private showEventMessage(eventType: MarketEvent) {
     const messages: { [K in MarketEvent]: string } = {
@@ -525,7 +560,10 @@ export class GameScene extends Scene {
 
     this.events.on("travel", (location: string) => {
       this.currentLocation = location;
+      // Atualizar preços ao chegar na nova cidade
+      this.priceManager.updatePricesForNewCity(location);
       this.updateUI();
+      this.showTravelMessage(`BEM-VINDO A ${location.toUpperCase()}!`);
     });
   }
 
@@ -599,11 +637,6 @@ export class GameScene extends Scene {
     });
   }
 
-  private updateUI() {
-    this.children.removeAll();
-    this.create();
-  }
-
   private checkGameOver = () => {
     let gameOver = false;
     let reason = "";
@@ -637,4 +670,31 @@ export class GameScene extends Scene {
       this.scene.start("GameOverScene", { reason, stats });
     }
   };
+
+  private nextDay() {
+    // Avançar para o próximo dia
+    this.timeManager.nextDay();
+
+    // Atualizar preços
+    this.priceManager.updatePrices(this.timeManager.getCurrentDay());
+
+    // Chance de eventos aleatórios (30% de chance ao dormir)
+    if (Math.random() < 0.3) {
+      const events: MarketEvent[] = [
+        "POLICE_RAID",
+        "HIGH_DEMAND",
+        "SUPPLY_SHORTAGE",
+        "NEW_SUPPLIER",
+      ];
+      const randomEvent = events[Math.floor(Math.random() * events.length)];
+      this.priceManager.triggerEvent(this.currentLocation, randomEvent);
+      this.showEventMessage(randomEvent);
+    }
+
+    // Atualizar dívidas
+    this.updateDebts();
+
+    // Atualizar UI
+    this.updateUI();
+  }
 }
