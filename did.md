@@ -148,3 +148,19 @@
 - Atualizada configuração do jogo para nova resolução
 - Melhorada organização do código
 - Adicionada documentação das mudanças
+
+# DrugLord 2 - Diário de Desenvolvimento
+
+## Versão 0.1.1
+
+- Adicionado sistema de dívidas
+- Implementado menu de agiota
+- Adicionadas consequências por não pagar dívidas
+- Melhorada a interface do usuário
+
+## Versão 0.1.2
+
+- Corrigido sistema de preços na tela principal
+- Corrigido sistema de atualização de dinheiro na interface
+- Melhorada a comunicação entre cenas
+- Refatoração do código para melhor organização
