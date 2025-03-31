@@ -11,6 +11,8 @@ export class GameScene extends Scene {
   private inventory: { [key: string]: number } = {};
   private priceManager: PriceManager;
   private timeManager: TimeManager;
+  private daysWithoutDeals: number = 0;
+  private readonly MAX_DAYS_WITHOUT_DEALS = 5;
   private readonly PRICE_UPDATE_INTERVAL = 5000; // Atualizar preços a cada 5 segundos
   private drugPrices: { [key: string]: { [key: string]: number } } = {
     "Nova York": {
@@ -502,6 +504,7 @@ export class GameScene extends Scene {
 
         this.playerMoney -= data.total;
         this.totalDeals++; // Incrementar contador de negócios
+        this.daysWithoutDeals = 0; // Resetar contador de dias sem transações
 
         if (this.playerMoney > this.maxMoney) {
           this.maxMoney = this.playerMoney;
@@ -538,6 +541,7 @@ export class GameScene extends Scene {
 
         this.playerMoney += data.total;
         this.totalDeals++; // Incrementar contador de negócios
+        this.daysWithoutDeals = 0; // Resetar contador de dias sem transações
 
         if (this.playerMoney > this.maxMoney) {
           this.maxMoney = this.playerMoney;
@@ -658,6 +662,13 @@ export class GameScene extends Scene {
       }
     }
 
+    // Verificar se passou muito tempo sem transações
+    if (this.daysWithoutDeals >= this.MAX_DAYS_WITHOUT_DEALS) {
+      gameOver = true;
+      reason =
+        "VOCÊ FICOU INATIVO POR MUITO TEMPO! OS FORNECEDORES TE ABANDONARAM!";
+    }
+
     if (gameOver) {
       const stats = {
         daysSurvived: Math.floor(
@@ -674,6 +685,9 @@ export class GameScene extends Scene {
   private nextDay() {
     // Avançar para o próximo dia
     this.timeManager.nextDay();
+
+    // Incrementar contador de dias sem transações
+    this.daysWithoutDeals++;
 
     // Atualizar preços
     this.priceManager.updatePrices(this.timeManager.getCurrentDay());
