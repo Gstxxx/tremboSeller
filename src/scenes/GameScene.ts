@@ -9,8 +9,9 @@ export class GameScene extends Scene {
   private playerDebt: number = 5000;
   private currentLocation: string = "Nova York";
   private inventory: { [key: string]: number } = {};
-  private priceManager: PriceManager;
-  private timeManager: TimeManager;
+  private priceManager: PriceManager = new PriceManager();
+  private timeManager: TimeManager = new TimeManager();
+  private debtManager: DebtManager = new DebtManager();
   private daysWithoutDeals: number = 0;
   private readonly MAX_DAYS_WITHOUT_DEALS = 5;
   private readonly PRICE_UPDATE_INTERVAL = 5000; // Atualizar preços a cada 5 segundos
@@ -72,7 +73,6 @@ export class GameScene extends Scene {
     },
   };
 
-  private debtManager: DebtManager;
   private startTime: number = Date.now();
   private maxMoney: number = 1000;
   private totalDeals: number = 0;
@@ -80,12 +80,25 @@ export class GameScene extends Scene {
 
   constructor() {
     super({ key: "GameScene" });
+    this.reset();
+  }
+
+  private reset() {
+    this.playerMoney = 1000;
+    this.playerDebt = 5000;
+    this.currentLocation = "Nova York";
+    this.inventory = {};
+    this.daysWithoutDeals = 0;
+    this.maxMoney = 1000;
+    this.totalDeals = 0;
+    this.startTime = Date.now();
     this.priceManager = new PriceManager();
     this.debtManager = new DebtManager();
     this.timeManager = new TimeManager();
   }
 
   create() {
+    this.reset();
     this.createBackground();
     this.createHeader();
     this.createInventory();
@@ -671,9 +684,7 @@ export class GameScene extends Scene {
 
     if (gameOver) {
       const stats = {
-        daysSurvived: Math.floor(
-          (Date.now() - this.startTime) / (24 * 60 * 60 * 1000)
-        ),
+        daysSurvived: this.timeManager.getCurrentDay(),
         maxMoney: this.maxMoney,
         totalDeals: this.totalDeals,
       };
