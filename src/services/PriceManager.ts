@@ -99,19 +99,8 @@ export class PriceManager {
             (1 + randomFluctuation + transactionModifier)
         );
 
-        // Limitar variação para evitar mudanças muito bruscas
-        const currentPrice = this.currentPrices[city][drug];
-        const maxChange = basePrice * 0.2; // Máximo de 20% de variação por atualização
-
-        if (Math.abs(newPrice - currentPrice) > maxChange) {
-          // Se a mudança for muito grande, limitar à variação máxima
-          this.currentPrices[city][drug] =
-            newPrice > currentPrice
-              ? currentPrice + maxChange
-              : currentPrice - maxChange;
-        } else {
-          this.currentPrices[city][drug] = newPrice;
-        }
+        // Garantir que o preço não fique muito baixo
+        this.currentPrices[city][drug] = Math.max(newPrice, basePrice * 0.5);
       });
     });
 
@@ -135,15 +124,20 @@ export class PriceManager {
 
   private calculateTransactionModifier(city: string, drug: string): number {
     const transactions = this.transactionHistory[city]?.[drug] || 0;
-    const baseModifier = 0.1; // 10% de modificador base por transação
 
-    // Se houve muitas transações (mais de 5), aumenta o preço
-    if (transactions > 5) {
-      return baseModifier * (transactions - 5);
+    // Se não houve transações, não há modificador
+    if (transactions === 0) {
+      return 0;
     }
-    // Se houve poucas transações (menos de 2), diminui o preço
-    else if (transactions < 2) {
-      return -baseModifier * (2 - transactions);
+
+    // Se houve muitas transações, o preço tende a subir
+    if (transactions > 5) {
+      return 0.1; // Aumenta 10% se houver muitas transações
+    }
+
+    // Se houve poucas transações, o preço tende a cair
+    if (transactions < 2) {
+      return -0.1; // Diminui 10% se houver poucas transações
     }
 
     return 0;

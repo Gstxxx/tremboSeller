@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { BuyMenuScene } from "./BuyMenuScene";
+import { BuyMenuScene } from "./Buy/scene";
 import { PriceManager, MarketEvent } from "../services/PriceManager";
 import { DebtManager } from "../services/DebtManager";
 import { TimeManager } from "../services/TimeManager";
@@ -15,6 +15,10 @@ export class GameScene extends Scene {
   private daysWithoutDeals: number = 0;
   private readonly MAX_DAYS_WITHOUT_DEALS = 5;
   private readonly PRICE_UPDATE_INTERVAL = 5000; // Atualizar preços a cada 5 segundos
+  private moneyText!: Phaser.GameObjects.Text;
+  private debtText!: Phaser.GameObjects.Text;
+  private locationText!: Phaser.GameObjects.Text;
+  private timeText!: Phaser.GameObjects.Text;
   private drugPrices: { [key: string]: { [key: string]: number } } = {
     "Nova York": {
       Trembolona: 100,
@@ -76,7 +80,6 @@ export class GameScene extends Scene {
   private startTime: number = Date.now();
   private maxMoney: number = 1000;
   private totalDeals: number = 0;
-  private timeText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "GameScene" });
@@ -152,19 +155,29 @@ export class GameScene extends Scene {
     const moneyContainer = this.add.rectangle(50, 70, 300, 40, 0x222222);
     moneyContainer.setOrigin(0, 0);
     this.add.text(65, 80, "💰", { fontSize: "24px" });
-    this.add.text(100, 78, `$${this.playerMoney}`, this.STYLES.money);
+    this.moneyText = this.add.text(
+      100,
+      78,
+      `$${this.playerMoney}`,
+      this.STYLES.money
+    );
 
     // Container para a dívida
     const debtContainer = this.add.rectangle(400, 70, 300, 40, 0x222222);
     debtContainer.setOrigin(0, 0);
     this.add.text(415, 80, "💸", { fontSize: "24px" });
-    this.add.text(450, 78, `$${this.playerDebt}`, this.STYLES.debt);
+    this.debtText = this.add.text(
+      450,
+      78,
+      `$${this.playerDebt}`,
+      this.STYLES.debt
+    );
 
     // Container para a localização
     const locationContainer = this.add.rectangle(750, 70, 300, 40, 0x222222);
     locationContainer.setOrigin(0, 0);
     this.add.text(765, 80, "📍", { fontSize: "24px" });
-    this.add.text(800, 78, this.currentLocation, {
+    this.locationText = this.add.text(800, 78, this.currentLocation, {
       ...this.STYLES.info,
       color: this.COLORS.textDark,
     });
@@ -232,7 +245,7 @@ export class GameScene extends Scene {
       padding: { x: 20, y: 10 },
     };
 
-    const buttonSpacing = 80;
+    const buttonSpacing = 70; // Reduzido o espaçamento para caber mais um botão
     let currentY = 180;
 
     // Botões com ícones
@@ -240,6 +253,7 @@ export class GameScene extends Scene {
       { text: "💊 COMPRAR", action: () => this.showBuyMenu() },
       { text: "💰 VENDER", action: () => this.showSellMenu() },
       { text: "✈️ VIAJAR", action: () => this.showTravelMenu() },
+      { text: "🦈 AGIOTA", action: () => this.showDebtMenu() },
       { text: "😴 DORMIR", action: () => this.nextDay() },
     ];
 
@@ -338,6 +352,16 @@ export class GameScene extends Scene {
   }
 
   private createPriceDisplay() {
+    // Remover painel de preços anterior se existir
+    this.children.list
+      .filter(
+        (child) =>
+          child instanceof Phaser.GameObjects.Rectangle &&
+          child.x === 50 &&
+          child.y === 210
+      )
+      .forEach((child) => child.destroy());
+
     const prices = this.priceManager.getPrices(this.currentLocation);
     const startY = 240;
     const spacing = 45;
@@ -385,58 +409,22 @@ export class GameScene extends Scene {
 
   private updateUI() {
     // Atualizar texto do dinheiro
-    const moneyText = this.children.list.find(
-      (child) =>
-        child instanceof Phaser.GameObjects.Text &&
-        child.text.includes("$") &&
-        child.y === 75
-    ) as Phaser.GameObjects.Text;
-    if (moneyText) {
-      moneyText.setText(`$${this.playerMoney}`);
+    if (this.moneyText) {
+      this.moneyText.setText(`$${this.playerMoney}`);
     }
 
     // Atualizar texto da dívida
-    const debtText = this.children.list.find(
-      (child) =>
-        child instanceof Phaser.GameObjects.Text &&
-        child.text.includes("$") &&
-        child.y === 75 &&
-        child.x > 400
-    ) as Phaser.GameObjects.Text;
-    if (debtText) {
-      debtText.setText(`$${this.playerDebt}`);
+    if (this.debtText) {
+      this.debtText.setText(`$${this.playerDebt}`);
     }
 
     // Atualizar texto da localização
-    const locationText = this.children.list.find(
-      (child) =>
-        child instanceof Phaser.GameObjects.Text &&
-        child.text === this.currentLocation
-    ) as Phaser.GameObjects.Text;
-    if (locationText) {
-      locationText.setText(this.currentLocation);
+    if (this.locationText) {
+      this.locationText.setText(this.currentLocation);
     }
 
     // Atualizar preços
-    this.children.list
-      .filter(
-        (child): child is Phaser.GameObjects.Text =>
-          child instanceof Phaser.GameObjects.Text &&
-          child.text.startsWith("$") &&
-          child.y > 240
-      )
-      .forEach((priceText) => {
-        const drug = this.children.list.find(
-          (child): child is Phaser.GameObjects.Text =>
-            child instanceof Phaser.GameObjects.Text &&
-            child.x === priceText.x - 170 &&
-            Math.abs(child.y - priceText.y) < 5
-        );
-        if (drug) {
-          const prices = this.priceManager.getPrices(this.currentLocation);
-          priceText.setText(`$${prices[drug.text]}`);
-        }
-      });
+    this.createPriceDisplay();
 
     // Atualizar inventário
     this.createInventory();
@@ -493,21 +481,23 @@ export class GameScene extends Scene {
   }
 
   private showBuyMenu() {
+    // Lançar a cena de compra com o callback
     this.scene.launch("BuyMenuScene", {
       drugPrices: this.priceManager.getPrices(this.currentLocation),
       currentLocation: this.currentLocation,
       playerMoney: this.playerMoney,
-    });
-
-    this.events.removeListener("purchase");
-
-    this.events.on(
-      "purchase",
-      (data: { purchase: { [key: string]: number }; total: number }) => {
+      onPurchase: (data: {
+        purchase: { [key: string]: number };
+        total: number;
+      }) => {
         console.log("Compra realizada:", data);
 
+        // Atualizar inventário
         Object.entries(data.purchase).forEach(([drug, quantity]) => {
-          this.inventory[drug] = (this.inventory[drug] || 0) + quantity;
+          if (!this.inventory[drug]) {
+            this.inventory[drug] = 0;
+          }
+          this.inventory[drug] += quantity;
           this.priceManager.recordTransaction(
             this.currentLocation,
             drug,
@@ -515,17 +505,25 @@ export class GameScene extends Scene {
           );
         });
 
+        // Atualizar dinheiro
         this.playerMoney -= data.total;
-        this.totalDeals++; // Incrementar contador de negócios
-        this.daysWithoutDeals = 0; // Resetar contador de dias sem transações
+        this.totalDeals++;
+        this.daysWithoutDeals = 0;
 
         if (this.playerMoney > this.maxMoney) {
           this.maxMoney = this.playerMoney;
         }
 
+        // Forçar atualização da UI
         this.updateUI();
-      }
-    );
+
+        // Destruir a cena de compra
+        const buyMenuScene = this.scene.get("BuyMenuScene");
+        if (buyMenuScene) {
+          buyMenuScene.scene.stop();
+        }
+      },
+    });
   }
 
   private showSellMenu() {
@@ -719,7 +717,7 @@ export class GameScene extends Scene {
     // Atualizar dívidas
     this.updateDebts();
 
-    // Atualizar UI
+    // Forçar atualização da UI
     this.updateUI();
   }
 }

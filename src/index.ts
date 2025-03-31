@@ -1,29 +1,27 @@
-import "phaser";
 import { GameScene } from "./scenes/GameScene";
-import { BuyMenuScene } from "./scenes/BuyMenuScene";
+import { BuyMenuScene } from "./scenes/Buy/scene";
 import { SellMenuScene } from "./scenes/SellMenuScene";
 import { TravelMenuScene } from "./scenes/TravelMenuScene";
-import { DebtMenuScene } from "./scenes/DebtMenuScene";
 import { SaveMenuScene } from "./scenes/SaveMenuScene";
-import { NewGameScene } from "./scenes/NewGameScene";
 import { GameOverScene } from "./scenes/GameOverScene";
+import { NewGameScene } from "./scenes/NewGameScene";
+import { DebtMenuScene } from "./scenes/DebtMenuScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: 1280,
   height: 720,
-  parent: "game",
   scene: [
     NewGameScene,
     GameScene,
     BuyMenuScene,
     SellMenuScene,
     TravelMenuScene,
-    DebtMenuScene,
     SaveMenuScene,
     GameOverScene,
+    DebtMenuScene,
   ],
   backgroundColor: "#000000",
 };
 
-new Phaser.Game(config);
+export default new Phaser.Game(config);
