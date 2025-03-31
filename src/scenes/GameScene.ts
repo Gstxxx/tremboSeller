@@ -40,6 +40,8 @@ export class GameScene extends Scene {
     accent: "#ff0000",
     text: "#ffffff",
     textDark: "#888888",
+    panel: "#111111",
+    itemBg: "#222222",
   };
 
   private readonly STYLES = {
@@ -126,34 +128,54 @@ export class GameScene extends Scene {
   }
 
   private createHeader() {
-    // Painel superior
+    // Painel superior com gradiente
     const headerPanel = this.add.rectangle(0, 0, 1280, 120, 0x111111);
     headerPanel.setOrigin(0, 0);
 
-    // Status do jogador
+    // Adicionar borda inferior
+    const borderLine = this.add.rectangle(0, 120, 1280, 2, 0x00ff00);
+    borderLine.setOrigin(0, 0);
+    borderLine.setAlpha(0.3);
+
+    // Status do jogador com ícones
     this.add.text(50, 20, "STATUS", this.STYLES.title);
 
-    // Dinheiro
-    this.add.text(50, 70, `CASH: $${this.playerMoney}`, this.STYLES.money);
+    // Container para o dinheiro
+    const moneyContainer = this.add.rectangle(50, 70, 300, 40, 0x222222);
+    moneyContainer.setOrigin(0, 0);
+    this.add.text(65, 75, "💰", { fontSize: "24px" });
+    this.add.text(100, 75, `$${this.playerMoney}`, this.STYLES.money);
 
-    // Dívida
-    this.add.text(400, 70, `DÍVIDA: $${this.playerDebt}`, this.STYLES.debt);
+    // Container para a dívida
+    const debtContainer = this.add.rectangle(400, 70, 300, 40, 0x222222);
+    debtContainer.setOrigin(0, 0);
+    this.add.text(415, 75, "💸", { fontSize: "24px" });
+    this.add.text(450, 75, `$${this.playerDebt}`, this.STYLES.debt);
 
-    // Localização
-    this.add.text(750, 70, `LOCAL: ${this.currentLocation}`, {
+    // Container para a localização
+    const locationContainer = this.add.rectangle(750, 70, 300, 40, 0x222222);
+    locationContainer.setOrigin(0, 0);
+    this.add.text(765, 75, "📍", { fontSize: "24px" });
+    this.add.text(800, 75, this.currentLocation, {
       ...this.STYLES.info,
       color: this.COLORS.textDark,
     });
   }
 
   private createInventory() {
-    // Painel de inventário
-    const inventoryPanel = this.add.rectangle(50, 420, 300, 280, 0x111111, 0.5);
+    // Painel de inventário com borda
+    const inventoryPanel = this.add.rectangle(50, 480, 300, 220, 0x222222);
     inventoryPanel.setOrigin(0, 0);
 
-    this.add.text(70, 440, "INVENTÁRIO", this.STYLES.title);
+    // Borda do painel
+    const border = this.add.rectangle(50, 480, 300, 220, 0x00ff00);
+    border.setOrigin(0, 0);
+    border.setStrokeStyle(2, 0x00ff00);
+    border.setFillStyle();
 
-    let y = 490;
+    this.add.text(70, 500, "🎒 INVENTÁRIO", this.STYLES.title);
+
+    let y = 550;
     const spacing = 40;
 
     if (Object.keys(this.inventory).length === 0) {
@@ -163,8 +185,17 @@ export class GameScene extends Scene {
       });
     } else {
       Object.entries(this.inventory).forEach(([drug, quantity]) => {
-        const itemBg = this.add.rectangle(70, y - 5, 260, 30, 0x222222);
+        const itemBg = this.add.rectangle(70, y - 5, 260, 30, 0x333333);
         itemBg.setOrigin(0, 0);
+        itemBg.setInteractive();
+
+        itemBg.on("pointerover", () => {
+          itemBg.setFillStyle(0x444444);
+        });
+
+        itemBg.on("pointerout", () => {
+          itemBg.setFillStyle(0x333333);
+        });
 
         this.add.text(80, y, drug, this.STYLES.info);
         this.add.text(250, y, quantity.toString(), {
@@ -177,8 +208,14 @@ export class GameScene extends Scene {
   }
 
   private createControls() {
-    const mainActionsPanel = this.add.rectangle(1000, 150, 250, 400, 0x111111);
+    const mainActionsPanel = this.add.rectangle(1000, 150, 250, 400, 0x222222);
     mainActionsPanel.setOrigin(0, 0);
+
+    // Adicionar borda ao painel
+    const border = this.add.rectangle(1000, 150, 250, 400, 0x00ff00);
+    border.setOrigin(0, 0);
+    border.setStrokeStyle(2, 0x00ff00);
+    border.setFillStyle();
 
     const buttonStyle = {
       fontSize: "24px",
@@ -187,28 +224,36 @@ export class GameScene extends Scene {
       padding: { x: 20, y: 10 },
     };
 
-    const buttonSpacing = 60;
+    const buttonSpacing = 80;
     let currentY = 180;
 
-    // Botão de compra
-    const buyButton = this.add
-      .text(1025, currentY, "COMPRAR", buttonStyle)
-      .setInteractive()
-      .on("pointerdown", () => this.showBuyMenu());
-    currentY += buttonSpacing;
+    // Botões com ícones
+    const buttons = [
+      { text: "💊 COMPRAR", action: () => this.showBuyMenu() },
+      { text: "💰 VENDER", action: () => this.showSellMenu() },
+      { text: "✈️ VIAJAR", action: () => this.showTravelMenu() },
+    ];
 
-    // Botão de venda
-    const sellButton = this.add
-      .text(1025, currentY, "VENDER", buttonStyle)
-      .setInteractive()
-      .on("pointerdown", () => this.showSellMenu());
-    currentY += buttonSpacing;
+    buttons.forEach((button) => {
+      const buttonBg = this.add.rectangle(1025, currentY, 200, 50, 0x333333);
+      buttonBg.setOrigin(0, 0);
+      buttonBg.setInteractive();
 
-    // Botão de viagem
-    const travelButton = this.add
-      .text(1025, currentY, "VIAJAR", buttonStyle)
-      .setInteractive()
-      .on("pointerdown", () => this.showTravelMenu());
+      buttonBg.on("pointerover", () => {
+        buttonBg.setFillStyle(0x444444);
+      });
+
+      buttonBg.on("pointerout", () => {
+        buttonBg.setFillStyle(0x333333);
+      });
+
+      const buttonText = this.add
+        .text(1045, currentY + 10, button.text, buttonStyle)
+        .setInteractive()
+        .on("pointerdown", button.action);
+
+      currentY += buttonSpacing;
+    });
 
     // Criar botão de menu no canto superior direito
     this.createMenuButton();
@@ -271,39 +316,57 @@ export class GameScene extends Scene {
     }
   }
 
+  private createTimeDisplay() {
+    const timePanel = this.add.rectangle(50, 140, 300, 50, 0x222222);
+    timePanel.setOrigin(0, 0);
+
+    // Adicionar ícone de relógio
+    this.add.text(65, 150, "🕒", { fontSize: "24px" });
+    this.timeText = this.add.text(100, 150, this.timeManager.getTimeString(), {
+      ...this.STYLES.info,
+      fontSize: "28px",
+    });
+  }
+
   private createPriceDisplay() {
     const prices = this.priceManager.getPrices(this.currentLocation);
-    const startY = 220;
-    const spacing = 40;
+    const startY = 240;
+    const spacing = 45;
 
-    // Painel de preços
-    const pricePanel = this.add.rectangle(50, 200, 300, 250, 0x111111, 0.5);
+    // Painel de preços com borda
+    const pricePanel = this.add.rectangle(50, 210, 300, 250, 0x222222);
     pricePanel.setOrigin(0, 0);
 
-    this.add.text(70, startY, "PREÇOS LOCAIS", this.STYLES.title);
+    // Borda do painel
+    const borderWidth = 2;
+    const border = this.add.rectangle(50, 210, 300, 250, 0x00ff00);
+    border.setOrigin(0, 0);
+    border.setStrokeStyle(borderWidth, 0x00ff00);
+    border.setFillStyle();
+
+    this.add.text(65, startY, "💊 PREÇOS", this.STYLES.title);
 
     Object.entries(prices).forEach(([drug, price], index) => {
-      const y = startY + 40 + spacing * index;
+      const y = startY + 50 + spacing * index;
 
-      // Container do item
-      const itemBg = this.add.rectangle(70, y - 5, 260, 30, 0x222222);
+      // Container do item com hover effect
+      const itemBg = this.add.rectangle(70, y - 5, 260, 30, 0x333333);
       itemBg.setOrigin(0, 0);
+      itemBg.setInteractive();
+
+      itemBg.on("pointerover", () => {
+        itemBg.setFillStyle(0x444444);
+      });
+
+      itemBg.on("pointerout", () => {
+        itemBg.setFillStyle(0x333333);
+      });
 
       this.add.text(80, y, drug, this.STYLES.info);
       this.add.text(250, y, `$${price}`, {
         ...this.STYLES.info,
         color: this.COLORS.primary,
       });
-    });
-  }
-
-  private createTimeDisplay() {
-    const timePanel = this.add.rectangle(50, 150, 300, 50, 0x111111, 0.5);
-    timePanel.setOrigin(0, 0);
-
-    this.timeText = this.add.text(70, 170, this.timeManager.getTimeString(), {
-      ...this.STYLES.info,
-      fontSize: "28px",
     });
   }
 
